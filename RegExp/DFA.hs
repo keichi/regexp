@@ -6,17 +6,16 @@ import Data.List hiding ((\\))
 
 import RegExp.NFA
 
-type DFAState = Set NFAState
-type DFATransition a = (DFAState, a, DFAState)
+type DFATransition s a = (s, a, s)
 
-data DFA a = DFA {
-    dfaStates   ::  Set DFAState,
-    dfaTrans    ::  Set (DFATransition a),
-    dfaStart    ::  DFAState,
-    dfaFinish   ::  Set DFAState
+data DFA s a = DFA {
+    dfaStates   ::  Set s,
+    dfaTrans    ::  Set (DFATransition s a),
+    dfaStart    ::  s,
+    dfaFinish   ::  Set s
 } deriving (Eq, Show)
 
-runDFA :: (Ord a) => DFA a -> [a] -> Bool
+runDFA :: (Ord s, Ord a) => DFA (Set s) a -> [a] -> Bool
 runDFA (DFA states trans start finish) str =
     foldl' step start str `Set.member` finish
     where
@@ -26,7 +25,7 @@ runDFA (DFA states trans start finish) str =
                 then Set.empty
                 else (\(_, _, f) -> f) $ Set.findMin next
 
-fromNFA :: (Ord a) => NFA a -> DFA a
+fromNFA :: (Ord s, Ord a) => NFA s a -> DFA (Set s) a
 fromNFA nfa = DFA {
         dfaStates   =   states,
         dfaTrans    =   trans,
@@ -37,7 +36,7 @@ fromNFA nfa = DFA {
         start = closure nfa $ Set.singleton $ nfaStart nfa
         (states, trans) = buildDFA nfa (Set.singleton start) Set.empty $ Set.singleton start
 
-buildDFA :: (Ord a) => NFA a -> Set DFAState -> Set (DFATransition a) -> Set DFAState -> (Set DFAState, Set (DFATransition a))
+buildDFA :: (Ord s, Ord a) => NFA s a -> Set (Set s) -> Set (DFATransition (Set s) a) -> Set (Set s) -> (Set (Set s), Set (DFATransition (Set s) a))
 buildDFA nfa states trans todo
     | Set.null todo = (states, trans)
     | otherwise = buildDFA nfa (states `Set.union` newStates) (trans `Set.union` newTransitions) (newStates \\ states)
@@ -45,7 +44,7 @@ buildDFA nfa states trans todo
         newStates = Set.map (\(_, _, f) -> closure nfa f) newTransitions
         newTransitions = Set.unions $ map (buildDFATrans nfa . closure nfa) $ Set.toList todo
 
-buildDFATrans :: (Ord a) => NFA a -> DFAState -> Set (DFATransition a)
+buildDFATrans :: (Ord s, Ord a) => NFA s a -> Set s -> Set (DFATransition (Set s) a)
 buildDFATrans nfa@(NFA _ nts _ _) state =
     Set.fromList $ map combine $ groupByArc dts
     where

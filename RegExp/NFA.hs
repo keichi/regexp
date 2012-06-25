@@ -1,6 +1,5 @@
 module RegExp.NFA (
         NFA(..),
-        NFAState,
         NFAFTransition,
         toDot,
         fromRegExp,
@@ -15,17 +14,16 @@ import Control.Monad.State
 
 import RegExp.Parser
 
-type NFAState = Int
-type NFAFTransition a = (NFAState, Maybe a, NFAState)
+type NFAFTransition s a = (s, Maybe a, s)
 
-data NFA a = NFA {
-    nfaStates   ::  Set NFAState,
-    nfaTrans    ::  Set (NFAFTransition a),
-    nfaStart    ::  NFAState,
-    nfaFinish   ::  NFAState
+data NFA s a = NFA {
+    nfaStates   ::  Set s,
+    nfaTrans    ::  Set (NFAFTransition s a),
+    nfaStart    ::  s,
+    nfaFinish   ::  s
 } deriving (Eq, Show)
 
-toDot :: NFA Char -> String
+toDot :: NFA Int Char -> String
 toDot nfa =
     unlines $ ["digraph nfa {"] ++ body ++ ["}"]
     where
@@ -34,10 +32,10 @@ toDot nfa =
             ++ " [label=" ++ [c] ++ "]"
         conv (n1, Nothing, n2) = show n1 ++ " -> " ++ show n2
 
-fromRegExp :: (Ord a) => RegExp a -> NFA a
+fromRegExp :: (Ord a) => RegExp a -> NFA Int a
 fromRegExp re = evalState (fromRegExp' re) 0
 
-fromRegExp' :: (Ord a) => RegExp a -> State NFAState (NFA a)
+fromRegExp' :: (Ord a) => RegExp a -> State Int (NFA Int a)
 fromRegExp' Epsilon = do
     s <- get
     modify (+1)
@@ -131,21 +129,21 @@ fromRegExp' (Optional r1) =
 fromRegExp' (Plus r1) =
     fromRegExp' $ Then r1 $ Star r1
 
-runNFA :: (Ord a) => NFA a -> [a] -> Bool
+runNFA :: (Ord s, Eq a) => NFA s a -> [a] -> Bool
 runNFA nfa str =
      nfaFinish nfa `Set.member` foldl' step init str
      where
         step states c = closure nfa $ onemove nfa c states
         init = closure nfa $ Set.singleton $ nfaStart nfa
 
-onemove :: (Ord a) => NFA a -> a -> Set NFAState -> Set NFAState
+onemove :: (Ord s, Eq a) => NFA s a -> a -> Set s -> Set s
 onemove (NFA _ trans _ _) c =
     Set.unions . Set.toList . Set.map onemove'
     where
         onemove' state = Set.fromList [f | (s, Just arc, f) <- Set.toList trans,
             c == arc, s == state]
 
-closure :: (Ord a) => NFA a -> Set NFAState -> Set NFAState
+closure :: (Ord s) => NFA s a -> Set s -> Set s
 closure (NFA _ trans _ _) states =
     loop states states
     where
