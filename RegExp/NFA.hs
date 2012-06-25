@@ -38,6 +38,17 @@ fromRegExp :: (Ord a) => RegExp a -> NFA a
 fromRegExp re = evalState (fromRegExp' re) 0
 
 fromRegExp' :: (Ord a) => RegExp a -> State NFAState (NFA a)
+fromRegExp' Epsilon = do
+    s <- get
+    modify (+1)
+    f <- get
+    modify (+1)
+    return NFA {
+        nfaStart    =   s,
+        nfaFinish   =   f,
+        nfaStates   =   Set.fromList [s, f],
+        nfaTrans    =   Set.singleton (s, Nothing, f)
+    }
 fromRegExp' (Literal c) = do
     s <- get
     modify (+1)
@@ -115,6 +126,10 @@ fromRegExp' (Star r1) = do
                 ]
             ]
     }
+fromRegExp' (Optional r1) =
+    fromRegExp' $ Or Epsilon r1
+fromRegExp' (Plus r1) =
+    fromRegExp' $ Then r1 $ Star r1
 
 runNFA :: (Ord a) => NFA a -> [a] -> Bool
 runNFA nfa str =
