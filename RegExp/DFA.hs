@@ -23,7 +23,7 @@ runDFA (DFA states trans start finish) str =
         step current c =
             let next = Set.filter (\(s, arc, _) -> s == current && c == arc) trans
             in if Set.null next
-                then current
+                then Set.empty
                 else (\(_, _, f) -> f) $ Set.findMin next
 
 fromNFA :: (Ord a) => NFA a -> DFA a
