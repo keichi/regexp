@@ -10,8 +10,8 @@ fromRight (Right a) = a
 fromRight _ = error "Data.Either.Utils.fromRight: Left"
 
 main = do
-    let nfa = fromRegExp .fromRight . parseRegExp $ "test?"
-        dfa = fromNFA nfa
+    let nfa = fromRegExp .fromRight . parseRegExp $ "(H|h)ado+p"
+        dfa = optimize . fromNFA $ nfa
    
     print dfa
 

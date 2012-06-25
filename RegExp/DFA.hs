@@ -15,15 +15,31 @@ data DFA s a = DFA {
     dfaFinish   ::  Set s
 } deriving (Eq, Show)
 
-runDFA :: (Ord s, Ord a) => DFA (Set s) a -> [a] -> Bool
-runDFA (DFA states trans start finish) str =
-    foldl' step start str `Set.member` finish
+optimize :: (Ord s, Ord a) => DFA s a -> DFA Int a
+optimize (DFA states trans start finish) =
+    DFA {
+        dfaStates   =   Set.map toInt states,
+        dfaTrans    =   Set.map (\(s, c, f) -> (toInt s, c, toInt f)) trans,
+        dfaStart    =   toInt start,
+        dfaFinish   =   Set.map toInt finish
+    }
     where
-        step current c =
+        toInt set = case (lookup set lut) of
+            Just id ->  id
+            Nothing ->  error "RegExp.DFA.minimize - LUT error"
+        lut = zip (Set.toList states) [0..]
+
+runDFA :: (Ord s, Ord a) => DFA s a -> [a] -> Bool
+runDFA (DFA states trans start finish) str =
+    case (foldl' (\s c -> s >>= step c) (Just start) str) of
+        Just state  ->  state `Set.member` finish
+        Nothing     ->  False
+    where
+        step c current =
             let next = Set.filter (\(s, arc, _) -> s == current && c == arc) trans
             in if Set.null next
-                then Set.empty
-                else (\(_, _, f) -> f) $ Set.findMin next
+                then Nothing
+                else (\(_, _, f) -> return f) $ Set.findMin next
 
 fromNFA :: (Ord s, Ord a) => NFA s a -> DFA (Set s) a
 fromNFA nfa = DFA {
