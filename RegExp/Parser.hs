@@ -2,7 +2,6 @@ module RegExp.Parser(RegExp(..), parseRegExp) where
 
 import Control.Applicative ((<$>),(*>),(<*),pure)
 import Text.Parsec
-import Text.Parsec.Char
 import Text.Parsec.String (Parser)
 
 data RegExp a =
