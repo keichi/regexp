@@ -6,10 +6,13 @@ import Text.Parsec.Char
 import Text.Parsec.String (Parser)
 
 data RegExp a =
-    Literal a
+    Epsilon
+    | Literal a
     | Or (RegExp a) (RegExp a)
     | Then (RegExp a) (RegExp a)
     | Star (RegExp a)
+    | Optional (RegExp a)
+    | Plus (RegExp a)
     deriving (Eq, Show)
 
 group :: Parser (RegExp Char)
@@ -24,7 +27,15 @@ repetition = chainl1 piece (pure Then)
 piece :: Parser (RegExp Char)
 piece = do
     v <- atom
-    option v (char '*'  >>  (return . Star $ v))
+    q <- qualifier
+    return $ q v
+
+qualifier :: Parser (RegExp Char -> RegExp Char)
+qualifier =
+        (char '*' *> pure Star)
+    <|> (char '+' *> pure Plus)
+    <|> (char '?' *> pure Optional)
+    <|> pure id
 
 atom :: Parser (RegExp Char)
 atom = Literal <$> alphaNum <|> group
