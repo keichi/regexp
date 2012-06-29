@@ -4,6 +4,7 @@ import Control.Applicative ((<$>),(*>),(<*),pure)
 import Text.Parsec
 import Text.Parsec.String (Parser)
 
+-- |Abstract syntax tree of regular expression
 data RegExp a =
     Epsilon
     | Literal a
@@ -39,5 +40,7 @@ qualifier =
 atom :: Parser (RegExp Char)
 atom = Literal <$> alphaNum <|> group
 
+-- |Parse the given regular expression and converts to the corresponing
+-- |abstract syntax tree
 parseRegExp :: String -> Either ParseError (RegExp Char)
 parseRegExp = parse regexp ""

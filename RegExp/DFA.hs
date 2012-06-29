@@ -1,4 +1,9 @@
-module RegExp.DFA where
+module RegExp.DFA (
+        DFA(..),
+        runDFA,
+        fromNFA,
+        optimize
+)where
 
 import Data.Set (Set, (\\))
 import qualified Data.Set as Set
@@ -6,8 +11,10 @@ import Data.List hiding ((\\))
 
 import RegExp.NFA
 
+-- |Type synonym for a DFA transition function
 type DFATransition s a = (s, a, s)
 
+-- |Data type representing a Dterminisitc Finite Automata
 data DFA s a = DFA {
     dfaStates   ::  Set s,
     dfaTrans    ::  Set (DFATransition s a),
@@ -29,6 +36,7 @@ optimize (DFA states trans start finish) =
             Nothing ->  error "RegExp.DFA.minimize - LUT error"
         lut = zip (Set.toList states) [0..]
 
+-- |Run the DFA with the given input, and determines if the input is accepted
 runDFA :: (Ord s, Ord a) => DFA s a -> [a] -> Bool
 runDFA (DFA states trans start finish) str =
     case (foldl' (\s c -> s >>= step c) (Just start) str) of
@@ -41,6 +49,7 @@ runDFA (DFA states trans start finish) str =
                 then Nothing
                 else (\(_, _, f) -> return f) $ Set.findMin next
 
+-- |Converts a NFA to an equivalent DFA
 fromNFA :: (Ord s, Ord a) => NFA s a -> DFA (Set s) a
 fromNFA nfa = DFA {
         dfaStates   =   states,

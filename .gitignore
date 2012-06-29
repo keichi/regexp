@@ -2,3 +2,5 @@
 *.hi
 dot
 Main
+html
+*.html

@@ -14,8 +14,10 @@ import Control.Monad.State
 
 import RegExp.Parser
 
+-- |Type synonym for a NFA transition function
 type NFAFTransition s a = (s, Maybe a, s)
 
+-- |Data type representing a Dterminisitc Finite Automata
 data NFA s a = NFA {
     nfaStates   ::  Set s,
     nfaTrans    ::  Set (NFAFTransition s a),
@@ -23,6 +25,7 @@ data NFA s a = NFA {
     nfaFinish   ::  s
 } deriving (Eq, Show)
 
+-- |Converts the given NFA to a graphviz dot format
 toDot :: NFA Int Char -> String
 toDot nfa =
     unlines $ ["digraph nfa {"] ++ body ++ ["}"]
@@ -32,6 +35,7 @@ toDot nfa =
             ++ " [label=" ++ [c] ++ "]"
         conv (n1, Nothing, n2) = show n1 ++ " -> " ++ show n2
 
+-- |Build a NFA from the given regular expression syntax tree
 fromRegExp :: (Ord a) => RegExp a -> NFA Int a
 fromRegExp re = evalState (fromRegExp' re) 0
 
@@ -129,6 +133,7 @@ fromRegExp' (Optional r1) =
 fromRegExp' (Plus r1) =
     fromRegExp' $ Then r1 $ Star r1
 
+-- |Run the NFA with the given input, and determines if the input is accepted
 runNFA :: (Ord s, Eq a) => NFA s a -> [a] -> Bool
 runNFA nfa str =
      nfaFinish nfa `Set.member` foldl' step init str
@@ -136,6 +141,8 @@ runNFA nfa str =
         step states c = closure nfa $ onemove nfa c states
         init = closure nfa $ Set.singleton $ nfaStart nfa
 
+-- |Computes the states that are transitionable from the vurrent state with
+-- |the given input
 onemove :: (Ord s, Eq a) => NFA s a -> a -> Set s -> Set s
 onemove (NFA _ trans _ _) c =
     Set.unions . Set.toList . Set.map onemove'
@@ -143,6 +150,7 @@ onemove (NFA _ trans _ _) c =
         onemove' state = Set.fromList [f | (s, Just arc, f) <- Set.toList trans,
             c == arc, s == state]
 
+-- |Computes the epsilon-closure for the given states
 closure :: (Ord s) => NFA s a -> Set s -> Set s
 closure (NFA _ trans _ _) states =
     loop states states
