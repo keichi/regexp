@@ -1,7 +1,7 @@
 module RegExp.NFA (
         NFA(..),
         NFAFTransition,
-        toDot,
+        nfaToDot,
         fromRegExp,
         runNFA,
         closure
@@ -26,8 +26,8 @@ data NFA s a = NFA {
 } deriving (Eq, Show)
 
 -- |Converts the given NFA to a graphviz dot format
-toDot :: NFA Int Char -> String
-toDot nfa =
+nfaToDot :: NFA Int Char -> String
+nfaToDot nfa =
     unlines $ ["digraph nfa {"] ++ body ++ ["}"]
     where
         body = Set.toList $ Set.map conv $ nfaTrans nfa

@@ -2,12 +2,14 @@ module RegExp.DFA (
         DFA(..),
         runDFA,
         fromNFA,
-        optimize
+        optimize,
+        dfaToDot
 )where
 
 import Data.Set (Set, (\\))
 import qualified Data.Set as Set
 import Data.List hiding ((\\))
+import Data.Maybe (fromMaybe)
 
 import RegExp.NFA
 
@@ -22,6 +24,15 @@ data DFA s a = DFA {
     dfaFinish   ::  Set s
 } deriving (Eq, Show)
 
+-- |Converts the given DFA to a graphviz dot format
+dfaToDot :: DFA Int Char -> String
+dfaToDot dfa =
+    unlines $ ["digraph dfa {"] ++ body ++ ["}"]
+    where
+        body = Set.toList $ Set.map conv $ dfaTrans dfa
+        conv (n1, c, n2) = show n1 ++ " -> " ++ show n2
+            ++ " [label=" ++ [c] ++ "]"
+
 optimize :: (Ord s, Ord a) => DFA s a -> DFA Int a
 optimize (DFA states trans start finish) =
     DFA {
@@ -31,15 +42,13 @@ optimize (DFA states trans start finish) =
         dfaFinish   =   Set.map toInt finish
     }
     where
-        toInt set = case (lookup set lut) of
-            Just id ->  id
-            Nothing ->  error "RegExp.DFA.minimize - LUT error"
+        toInt set = fromMaybe (error "RegExp.DFA.minimize - LUT error" ) (lookup set lut)
         lut = zip (Set.toList states) [0..]
 
 -- |Run the DFA with the given input, and determines if the input is accepted
 runDFA :: (Ord s, Ord a) => DFA s a -> [a] -> Bool
 runDFA (DFA states trans start finish) str =
-    case (foldl' (\s c -> s >>= step c) (Just start) str) of
+    case foldl' (\s c -> s >>= step c) (Just start) str of
         Just state  ->  state `Set.member` finish
         Nothing     ->  False
     where

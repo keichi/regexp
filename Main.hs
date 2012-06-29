@@ -1,19 +1,26 @@
 module Main where
 
-import RegExp.Parser
+import Text.Show.Pretty
+
 import RegExp.NFA
 import RegExp.DFA
-import qualified Data.Set as Set
+import RegExp.Utils
 
 fromRight :: Either a b -> b
 fromRight (Right a) = a
 fromRight _ = error "Data.Either.Utils.fromRight: Left"
 
 main = do
-    let nfa = fromRegExp .fromRight . parseRegExp $ "(H|h)ado+p"
-        dfa = optimize . fromNFA $ nfa
-   
-    print dfa
+    let nfa = fromRight $ compileToNFA "a(a|b)*"
+        dfa = fromRight $ compileToDFA "a(a|b)*"
 
-    print $ runNFA nfa "tes"
-    print $ runDFA dfa "testa"
+    putStrLn $ nfaToDot nfa
+    putStrLn $ dfaToDot dfa
+
+    --putStrLn $ ppShow nfa
+    --putStrLn $ ppShow dfa
+
+    --print $ runNFA nfa "hadooop"
+    --print $ runDFA dfa "Hadp"
+    
+
